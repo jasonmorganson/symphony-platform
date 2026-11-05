@@ -3,18 +3,22 @@ title: Symphony Platform Console - Effect 4 Platform Supplement
 type: design
 date: 2026-08-11
 origin: symphony-platform-console-implementation.md
-status: selected-validation-required
+status: selected-deferred-reference
 scope: console application services, persistence, workflows, and private wire contracts
 validation_task: Validate the Symphony console Effect 4 platform
 ---
 
 # Symphony Platform Console - Effect 4 Platform Supplement
 
+> **Deferred reference supplement.** This records the selected console posture
+> for a possible future implementation. The pins and validation evidence are
+> historical and must be refreshed before use.
+
 ## Purpose and Authority
 
 This document fixes the selected Effect 4 implementation posture for the Symphony Platform console and supersedes the server-platform choices in `symphony-platform-console-implementation.md`. The Product Contract and the Symphony and Flux ownership boundaries in `symphony-platform-implementation-plan.md` remain authoritative.
 
-Effect Schema, Effect SQL, Effect Workflow, and the Effect application-service model are selected. The disposable validation described below is a blocking implementation gate for the exact selected composition, not a comparison or partial-adoption exercise. Beta dependencies are permitted when pinned and proven by the complete gate. A failed or inconclusive load-bearing gate stops implementation and returns the stack to planning; it does not silently restore Kysely, remove Effect Workflow, or assemble an untested hybrid.
+Effect Schema, Effect SQL, Effect Workflow, and the Effect application-service model are selected. The disposable validation described below is a blocking pre-U1 feasibility gate for the exact selected composition, not a comparison or partial-adoption exercise. It proves that the selected mechanisms compose under representative production boundaries before permanent scaffolding begins; it cannot prove product integrations that do not exist until later implementation units. Beta dependencies are permitted when pinned and proven by the complete feasibility gate. A failed or inconclusive load-bearing feasibility result stops implementation and returns the stack to planning; it does not silently restore Kysely, remove Effect Workflow, or assemble an untested hybrid. Product-specific identity, provider, controller, packaging, console, release, and hosted-workflow acceptance remains blocking in its owning U2-U16 unit.
 
 This selected supplement cannot move Symphony-owned polling, claims, retries, workspaces, tracker normalization, Codex sessions, or run state into the console. It cannot give the console Kubernetes credentials or move Kubernetes write authority from Flux into the console or the reusable source controller. It does not change the single private desired-state operation, ExternalArtifact topology, product-release OCI contract, or Symphony image ownership.
 
@@ -22,11 +26,12 @@ This selected supplement cannot move Symphony-owned polling, claims, retries, wo
 
 - `apps/console` remains ordinary Next.js App Router code: React UI, Server Components, Server Actions, Better Auth integration, Route Handlers at established protocol boundaries, and thin server-only adapters into application services.
 - `packages/backend` becomes the server-only Effect 4 package for domain and application services, Effect Schema models and codecs, Effect SQL repositories and transactions, Effect Workflow definitions and activities, and managed web and worker runtimes.
-- `packages/contracts` remains the language-neutral external-contract package. It owns the authored OpenAPI 3.1 desired-state contract and reproducibly generated Effect-facing wire contracts, not persistence models or internal domain types.
+- `packages/contracts` remains the external-contract package. It owns the authoritative Effect Schema and HttpApi desired-state definition and reproducibly generated OpenAPI 3.1 controller artifact, not persistence models or internal domain types.
 - Effect SQL is the product-owned database-access layer. Better Auth may retain its pinned internal Kysely-backed PostgreSQL adapter inside the authentication boundary; that dependency is not a second product persistence authority.
 - Effect Workflow is the durable console workflow engine. Its first required product consumer is hosted export and per-data-class deletion orchestration, including retries and deletion receipts. No workflow may take over Symphony scheduling or Flux reconciliation.
 - Atlas-managed PostgreSQL DDL remains the sole relational and production migration authority for console-owned schemas. Effect Workflow is a deliberately isolated exception: Workflow retains runtime DDL authority only for its own `workflow` schema under a dedicated role. Atlas provisions that schema and grants but does not define or migrate Workflow's internal tables.
-- Exact beta versions are allowed when pinned and when the complete selected composition passes the implementation, security, portability, upgrade, rollback, and deletion gates.
+- Exact beta versions are allowed when pinned and when the complete representative composition passes the pre-U1 feasibility gate. Product security, portability, upgrade, rollback, and deletion acceptance remains mandatory in the owning implementation units.
+- Connections are non-secret application objects. Effect services own their metadata and lifecycle, a replaceable write-only adapter owns manual credential creation and versioning, provider Route Handlers own GitHub and Linear OAuth exchanges, and exact pinned stock Codex owns managed ChatGPT token exchange, storage, refresh, and logout. No runtime model or convenience API may collapse those authorities.
 
 This is a platform substitution inside the console boundary, not a product or control-plane redesign.
 
@@ -39,6 +44,7 @@ The console remains recognizable Next.js code:
 - React UI and Client Components contain no Effect imports, Effect services, Effects, Layers, or managed runtimes.
 - Server Components call thin server-only adapters that resolve request context and run application services.
 - Server Actions remain explicit, hand-authored domain commands. Every action validates its input and independently derives tenant, role, installation, and authorization from the Better Auth server session.
+- Admin-only Connection actions cover create, manual write-once submission, reauthorization, rotation, kind or scope change, disconnect, and revocation. Secret-bearing inputs are one-call values that cannot enter action results, persisted form state, caches, outboxes, workflows, logs, traces, errors, exports, or backups.
 - Better Auth retains its required Route Handler.
 - OAuth callbacks and provider or Stripe webhooks remain narrow provider-protocol Route Handlers.
 - The single cluster-private `GET /internal/v1/installations/{installationId}/desired-state` Route Handler remains the only product-owned machine API at launch.
@@ -51,6 +57,7 @@ Server-only adapters translate framework inputs into Effect application-service 
 The selected server-only workspace owns:
 
 - Domain services and application use cases.
+- Connection metadata, optimistic lifecycle transitions, idempotency records, monotonic revocation fences, non-secret observations, and replaceable credential-writer and runtime-projection ports with no read/list/export method.
 - Effect Schema models, codecs, action-input schemas, workflow payloads, and repository boundary models.
 - Effect SQL repositories, parameterized SQL, transactions, locking, and PostgreSQL adapters.
 - Effect Workflow definitions, activities, retry policies, compatibility rules, and worker runtime.
@@ -61,10 +68,11 @@ The package must not expose Effect runtime objects to Client Components. It must
 
 ### `packages/contracts`
 
-The contracts workspace continues to own external wire contracts only:
+The contracts workspace continues to own the one external wire contract only:
 
-- The directly authored, language-neutral OpenAPI 3.1 desired-state document.
-- Deterministically generated Effect HTTP schemas, server bindings, and client declarations selected by validation.
+- The authoritative Effect Schema models, HttpApi endpoint, authentication middleware, declared errors and responses, route metadata, and projection extension metadata for desired state.
+- Deterministically generated OpenAPI 3.1 for the language-neutral reusable-controller boundary.
+- TypeScript declarations inferred from the authoritative Effect schemas without generated duplicate source.
 - Shared conformance fixtures for the console and reusable controller.
 - Contract validation and generation-drift tests.
 
@@ -104,10 +112,11 @@ packages/
 │   ├── tests/
 │   └── package.json
 └── contracts/
-    ├── openapi/
-    │   └── desired-state.openapi.yaml
-    ├── generated/
     ├── src/
+    │   └── desired-state/
+    ├── openapi/
+    │   └── desired-state.openapi.yaml  # generated and committed
+    ├── scripts/
     ├── tests/
     └── package.json
 ```
@@ -127,7 +136,7 @@ Effect Schema is authoritative for runtime data shapes and transformations:
 - Server Action inputs and results.
 - Workflow inputs, outputs, activity payloads, and versioned compatibility envelopes.
 - Repository row, insert, update, and JSON boundary models.
-- External wire bindings derived from the authored OpenAPI contract.
+- External wire bindings defined by the authoritative desired-state HttpApi and Effect schemas.
 
 Atlas-managed PostgreSQL DDL is authoritative for physical and relational database behavior:
 
@@ -145,7 +154,7 @@ The selected database uses qualified logical ownership boundaries:
 
 | PostgreSQL schema | Owner | Contents |
 |---|---|---|
-| `app` | Symphony console | Organizations, installations, lanes, accepted revisions, outbox records, usage, and other product state |
+| `app` | Symphony console | Organizations, installations, lanes, accepted revisions, non-secret Connection metadata and revocation fences, outbox records, usage, and other product state |
 | `auth` | Better Auth contract, provisioned by Atlas | Better Auth tables, constraints, and indexes required by the pinned configuration |
 | `workflow` | Effect Workflow contract, isolated by Atlas | Durable workflow engine state and migrations required by the pinned Effect Workflow version |
 
@@ -155,12 +164,14 @@ Better Auth migration commands may run only against disposable validation databa
 
 Effect Workflow initialization runs in the dedicated worker process with a separate `workflow` runtime role that has DDL only in the `workflow` schema. Atlas pre-provisions the schema and grants, but Workflow creates and upgrades its own internal objects. Pin the exact Workflow version, test fresh initialization and upgrades against a disposable database, and prove that its role cannot create, alter, or drop objects in `app`, `auth`, `public`, or any other schema. Atlas must never rewrite, drop, or infer Workflow's internal tables.
 
-At minimum, deployment uses separate roles:
+At minimum, deployment uses separate roles and external identities:
 
 - An Atlas migration role with the scoped DDL privileges needed by the committed migration job.
 - A web runtime role with only the required DML and sequence privileges.
 - A workflow runtime role that has DML and the narrowly scoped DDL privileges required only inside `workflow`.
 - Optional read-only verification roles for catalog and drift checks.
+- An installation-scoped credential-writer identity with create/version/promote/revoke/status authority and no value-read, list, export, or runtime-mount authority.
+- Trusted runtime identities that may consume only the active credential projection for their provider role.
 
 The web runtime role receives no `CREATE`, `ALTER`, `DROP`, schema-owner, extension-owner, or database-owner authority. The workflow runtime role is the sole exception: its schema owner and DDL grants are restricted to `workflow`; it receives no authority in `app`, `auth`, `public`, extensions, or the database. A dependency requiring runtime DDL outside its dedicated internal schema stops implementation.
 
@@ -227,49 +238,92 @@ Workflow payloads and activity results are a named hosted data class. They canno
 
 Upgrade validation starts concurrent workers, interrupts an internal Workflow migration, upgrades with in-flight work, and then rolls the complete image back to the prior pinned Workflow version without restoring PostgreSQL. Accepted work must converge without duplicated external effects. A post-adoption reversal freezes enrollment, runs the last known-good worker, drains or explicitly terminates in-flight work, reconciles every outbox row, records terminal evidence, and removes the worker and schema only after a zero-pending-state gate passes.
 
+## Connection Administration and Credential Custody
+
+The console presents one organization-level Connections area. A Connection records provider, explicit authentication kind, external account and workspace or installation identity, approved scopes, lifecycle status, active opaque version reference, validation and rotation timestamps, dependent lanes, normalized health, and audit history. It does not contain a key, token, authorization header, device code, browser cookie, `auth.json`, or provider response body.
+
+Only an Admin may create, reauthorize, rotate, change kind or scope, disconnect, or revoke a Connection. Members can see the normalized status needed to understand a lane and the role that must remediate it. Time-bound hosted support sees only support-approved non-secret status. Coding agents receive provider capabilities and normalized failures through the trusted orchestrator or broker, never Connection inventory or management operations.
+
+### Manual API keys and access tokens
+
+One TLS Server Action accepts the secret field, authenticates and authorizes the current Admin, validates provider and kind metadata, then passes the value directly to an installation-bound write-only credential-store port. The port returns only an opaque immutable version reference and receipt. Application code has no method or permission to retrieve, list, display, replay, export, back up, or mount that value. The submitted field is cleared after the response and cannot be included in validation errors, React state returned to the browser, request-body telemetry, SQL, Workflow, desired-state output, or audit details.
+
+An OpenAI API key uses stock Codex's documented API-key login shape after the candidate projection reaches the trusted orchestrator. A Business or Enterprise Codex access token uses the documented stock-Codex personal-access-token path and represents the creating user and workspace; it is not modeled as an additional app-server login method.
+
+### GitHub and Linear OAuth
+
+GitHub and Linear authorization remain provider protocols implemented by narrow Route Handlers. Each ceremony binds state, PKCE where supported, issuer, exact redirect URI, current Admin session, organization, Connection, requested scope, and idempotency key. The callback exchanges directly into the selected custody adapter and retains only opaque references plus non-secret account, workspace, installation, repository, scope, expiry, and validation metadata. GitHub tokens are opaque. Linear refresh and revocation behavior is pinned to the selected provider contract and revalidated on integration upgrades.
+
+### Stock-Codex-managed ChatGPT authorization
+
+When U2 enables it, the model Connection offers stock-Codex `chatgpt` browser OAuth and `chatgptDeviceCode`; device code is the preferred hosted-Pod ceremony because it does not depend on a loopback browser callback reaching the Pod. The console calls an authenticated, installation-bound app-server control channel to start, cancel, inspect, or log out. Stock Codex alone exchanges, stores, refreshes, and deletes the resulting tokens in an encrypted orchestrator-only auth store. The console persists only an opaque ceremony identifier, expiry, terminal state, and resulting non-secret account/workspace identity.
+
+The device-code UI shows the exact OpenAI verification host, one-time user code, expiry, progress, and cancel action, and warns the user not to share the code. Polling honors the server interval, `slow_down`, expiry, access denial, cancellation, replay, and duplicate completion semantics. Refresh, navigation, or process restart resumes from non-secret ceremony state. `chatgptAuthTokens`, imported browser cookies, and imported `auth.json` are forbidden because they bypass stock Codex's ownership of token lifecycle. Codex credential storage is configured explicitly; automatic plaintext fallback and unredacted `codex-login.log` are release failures.
+
+Account metadata such as `planType` and rate-limit observations may inform the UI but cannot prove workspace eligibility, seat, role, permission, commercial-use rights, or a universal billing limit. U2 enables a mode only after a real pinned-version run and an acceptable hosted-use contract pass.
+
+### Activation, rotation, revocation, and rollback
+
+Activation is a staged saga: reserve inactive metadata and an idempotency key; create an immutable credential version or complete stock-Codex authorization; validate through the owning trusted consumer; compare-and-swap the active reference; then retire the prior version and collect unreachable versions. The design does not claim a cross-PostgreSQL-and-secret-store transaction.
+
+Rotation validates the replacement before promotion and never falls back to the old version, another account, or another kind. A cleanup failure is an auditable non-secret remediation item, not permission to reactivate the previous version. Trusted consumers must demonstrate that promotion causes a reload or remount without exposing the value to the console or worker.
+
+Revocation first commits a monotonic local denial fence that blocks new lane acceptance, leases, refresh, stock-Codex auth operations, and provider calls. Remote provider revocation or stock-Codex logout follows idempotently; provider uncertainty is reported rather than treated as proof of remote deletion. Disconnect lists dependent lanes and normally requires pause or reassignment. Forced disconnect makes those lanes `action-required`.
+
+Desired-state rollback changes configuration only. Every trusted use resolves current Connection status and the revocation fence, so an old revision cannot resurrect a retired, revoked, disconnected, identity-changed, or scope-invalid credential. Backup and restore replay metadata and fences before enabling work, classify stock-Codex auth storage separately, and prove deleted material is not resurrected.
+
 ## Private HTTP Contract
 
 Browser-to-console interactions continue to use Server Components and Server Actions. The selected platform does not introduce a general browser API.
 
-The existing directly authored OpenAPI 3.1 document remains the sole authority for the cluster-private desired-state projection operation:
+The Effect HttpApi definition in `packages/contracts` is the sole authority for the cluster-private desired-state projection operation:
 
 `GET /internal/v1/installations/{installationId}/desired-state`
 
-The operation remains complete, unpaginated, installation-authenticated, size-bounded, conditionally retrievable by canonical-digest `ETag`, and excluded from public ingress. It continues to return projection-ready child Flux Kustomizations without secrets or Symphony runtime state.
+The operation remains complete, unpaginated, installation-authenticated, limited to 2,048 lanes and 8 MiB of canonical serialized bytes, conditionally retrievable by canonical-digest `ETag`, and excluded from public ingress. Each bound is enforced independently. It continues to return projection-ready child Flux Kustomizations without secrets or Symphony runtime state.
 
-The selected stack generates Effect schemas and handler/client bindings from that document using the selected official Effect OpenAPI tooling. Generation must be deterministic and warning-free, preserve every OpenAPI 3.1 constraint and extension required by the reusable controller, and introduce no second wire authority. Validation must identify the exact generator, supported direction, version, unsupported constructs, and runtime validation behavior.
+The authoritative module defines the endpoint path and method, installation path parameter, `If-None-Match` request header, 200 body and `ETag` header, 304 response, typed error responses, response bounds, authentication middleware, and the lane projection schema. It co-locates official Effect OpenAPI override or transform metadata that adds `x-kubeprojection-resource` to the generated lane component and the response-bound extension to the operation. Generation uses the exact pinned Effect `OpenApi.fromApi` path, produces OpenAPI 3.1 deterministically and without warnings, and fails if the named component or required extension is absent. The generated document is committed for external-controller review and clean-clone use, checked for drift, and never edited directly.
 
-Every generated server binding is wrapped by mandatory controller workload authentication before application execution. It rejects browser-session credentials, derives the authorized installation from the verified workload identity, and returns an authentication or authorization failure for a path-to-identity mismatch. Generated handlers cannot export an unguarded route or accept client-supplied tenant authority.
+The single Next.js Route Handler is a thin framework adapter over a handler assembled from the authoritative HttpApi. Mandatory controller workload authentication runs as HttpApi middleware before application execution, rejects browser-session credentials, derives the authorized installation from verified workload identity, and returns a declared authentication or authorization error for a path-to-identity mismatch. The adapter cannot restate or override route, request, response, error, authentication, or validation semantics, export an unguarded route, or accept client-supplied tenant authority. No generated general HTTP client or public server layer is required at launch.
 
-TypeSpec and `openapi-typescript` are absent from the selected stack.
+TypeSpec, `openapi-typescript`, and reverse OpenAPI-to-Effect generation are absent from the selected stack.
 
 ## Console State and Information Architecture
 
 The launch console has a fixed hierarchy:
 
 1. Organization landing page with role-aware lane inventory and installation health.
-2. Staged lane onboarding with resumable provider, repository, tracker, credential, and validation steps.
+2. Organization Connections inventory and detail, followed by staged lane onboarding with resumable provider-reference, repository, tracker, and validation steps.
 3. Accepted-revision review showing the complete proposed installation change before acceptance.
 4. Lane deployment detail showing product-owned desired state, source, artifact, root, and child reconciliation evidence.
 5. Role-appropriate remediation controls for retry, provider repair, binding-drift repair guidance, and revision rollback.
 6. A clearly separate tenant- and lane-authorized link to Symphony's runtime dashboard; the console never labels Symphony run state as product deployment state.
 
-The derived deployment model preserves raw source and Flux observations and uses the following precedence:
+Lane onboarding is an explicit persisted draft flow: organization context, active Linear Connection and project, source repository and verified PR-origin fork, active model Connection selection, immutable repository revision and workflow validation, then complete installation-diff review and acceptance. Credential entry and OAuth consent occur in the separate Admin-only Connection ceremony; the lane draft stores only Connection IDs and non-secret validation evidence. Each successfully validated stage is saved server-side. Back, exit, and resume preserve completed non-secret fields; loading and failure stay attached to the owning stage. If the accepted installation revision or a selected Connection version changes while a draft is open, submission fails stale, shows the intervening complete diff, preserves the draft, and requires an explicit rebase-and-resubmit before acceptance.
 
-| Console state | Authoritative condition | User guidance |
+The derived deployment model preserves raw source and Flux observations and evaluates the following precedence from highest to lowest: a current authentication, binding, source, artifact, root, or child failure is `action-required`; complete current-revision convergence is `applied`; active or incomplete root/child convergence is `reconciling`; a matching artifact not yet observed by root is `artifact-ready`; a source-observed revision without a matching artifact is `source-syncing`; otherwise the committed database revision is `accepted`. A stale observation retains its raw value and timestamp but cannot establish `applied`; after the published observation timeout it becomes `action-required`. Server Component navigation and manual refresh retrieve current observations at launch; no browser polling API is implied.
+
+| Console state | Authoritative condition | Semantics and user guidance |
 |---|---|---|
-| `accepted` | Database revision committed; source has not observed its digest | Wait; Admin may inspect or select another revision |
-| `source-syncing` | Source observed the revision but no matching ready artifact exists | Wait or retry source access after the documented timeout |
-| `artifact-ready` | Matching artifact is ready; root has not observed its digest | Wait; expose artifact evidence but no lane-success claim |
-| `reconciling` | Root or any expected child is progressing or has not reached the expected revision | Wait or open the failing root or child evidence |
-| `applied` | Source, artifact, root, and every expected child report the accepted revision ready | No remediation; link separately to Symphony runtime status |
-| `action-required` | Authentication, source, artifact, binding, root, or child failure blocks convergence | Show the owning boundary, safe retry or repair action, and rollback option |
+| `accepted` | Database revision committed; source has not observed its digest | Progress state. Wait; Admin may inspect the accepted diff or select another revision. |
+| `source-syncing` | Source observed the revision but no matching ready artifact exists | Progress state. Wait; after timeout, show source evidence and the source-access retry owned by the source boundary. |
+| `artifact-ready` | Matching artifact is ready; root has not observed its digest | Progress state. Wait; expose artifact evidence and refresh, but make no lane-success claim. |
+| `reconciling` | Root or any expected child is progressing or has not reached the expected revision | Progress state. Show the owning root or child, current conditions, refresh, and any safe Flux retry available to the operator. |
+| `applied` | Source, artifact, root, and every expected child report the accepted revision ready within the observation window | Converged deployment state. Offer no repair action; link separately to Symphony runtime status. |
+| `action-required` | Current authentication, source, artifact, binding, root, child, or stale-observation failure blocks convergence | Blocking state with highest precedence. Show the owning boundary, raw condition and age, role-appropriate repair, refresh, and lane-only or installation rollback where authorized. |
 
 Any regression from `applied` is recomputed from current observations. Members may view evidence and guidance but cannot invoke Admin-only mutations. Missing or altered static bindings always become `action-required`; the console provides hosted reconciliation or signed-base reapplication guidance and never writes Kubernetes itself.
 
-## Implementation Gates and Stop Conditions
+| Role | Visible surfaces | Mutating and remediation authority |
+|---|---|---|
+| Admin | All organization, Connection, lane, accepted-revision, deployment-evidence, commercial, and authorized Symphony-link surfaces | Create, authorize, reauthorize, rotate, change scope or kind, disconnect, and revoke Connections; create and rebase lane drafts; accept revisions; pause, resume, remove, and roll back a lane; manage hosted subscription controls. Binding repair remains operator-owned. |
+| Member | Organization and lane inventory, lane-relevant normalized Connection status, deployment evidence and guidance, and the authorized Symphony runtime link | Read-only in the console. Credential and other Admin-only actions are absent and the page names the required escalation role. |
+| Infrastructure operator | Installation health, binding and Flux evidence, release and migration state, backup/restore, and runbook links | Bootstrap or reapply the signed base, repair installation drift, upgrade or roll back the product release, and run backup/restore. Cannot accept tenant lane revisions or change billing. |
+| Hosted support | Time-bound audited view of support-approved organization, installation, and deployment evidence | May execute only the same hosted installation-repair actions granted by the support elevation. Cannot accept lane revisions, access reusable credentials or routine source, or change billing without separate Admin action. |
 
-Implementation requires executable evidence for the exact selected composition in every row:
+## Foundation Feasibility Gates and Later Acceptance Ownership
+
+U1 requires executable, bounded evidence for the exact selected composition in every row below. The original pre-U1 receipt closed the base platform rows. KTD17's later contract-direction change reopens only the HttpApi and OpenAPI row, which must pass before the U1 contract migration is complete. These rows validate mechanisms and compatibility using representative disposable topology; they do not substitute for later product acceptance.
 
 | Area | Required evidence | Stop condition |
 |---|---|---|
@@ -280,16 +334,26 @@ Implementation requires executable evidence for the exact selected composition i
 | Effect Workflow | Atlas-created `workflow` schema and grants, runtime DDL confined to that schema, durable retry/restart behavior, idempotent effects, payload evolution | DDL reaches another schema or durability/upgrade behavior is unproven |
 | Atlas | Product-schema migration authority plus platform provisioning of the isolated Workflow schema and grants | Dependency database ownership cannot be isolated and audited |
 | Dual write | Shared transaction or demonstrated transactional outbox under crash injection | Accepted state can exist permanently without recoverable workflow enrollment |
-| OpenAPI | Deterministic, warning-free Effect generation preserving the existing contract | Generator changes or cannot express the required wire contract |
+| HttpApi and OpenAPI | The exact pinned Effect HttpApi executes the required method, path, authentication, headers, 200/304 and error responses while `OpenApi.fromApi` produces deterministic, warning-free OpenAPI 3.1 with the required projection and bound extensions | Runtime and generated contracts diverge, the official generator cannot express the contract, or generation requires an independently edited patch |
 | Context | Concurrent request/activity isolation for actor, tenant, transaction, connection, and tracing | Cross-request, cross-tenant, or cross-activity leakage |
 | Packaging | One image, independent web and worker entrypoints, identities, secrets, network policy, and scaling | Either entrypoint can obtain the other runtime's authority or requires request-lifetime coupling |
-| Browser security | Deployed trusted-origin, CSRF, cookie, fixation, rotation, revocation, OAuth state, PKCE, and redirect-allowlist tests | Any cross-origin, fixed-session, stale-membership, or callback bypass succeeds |
-| Private API authorization | Generated bindings preserve workload authentication and installation scoping before application execution | An unguarded route or cross-installation retrieval exists |
-| Portability | Same-release hosted, self-hosted, and disconnected startup, initialization, backup, restore, rollback, and uninstall | The selected worker or schema requires a hosted callback or different product build |
-| Retention and deletion | Tenant-scoped export, purge, receipts, and restore non-resurrection for outbox and Workflow storage | A hosted data class cannot be deleted or can reappear after restore |
-| Telemetry | Canary values remain absent from logs, traces, failures, SQL diagnostics, workflow records, and crashes | A secret, source value, browser session, or cross-tenant value is emitted |
+| Browser security mechanism | A compiled Server Action uses real Better Auth sessions, secure cookie mechanics, stored authorization, stale-membership and revocation checks, and trusted-origin/CSRF rejection | Cross-origin execution or stale, revoked, missing, or cross-tenant session authority reaches the Effect service |
+| Private API authorization seam | The HttpApi middleware cryptographically verifies an installation-scoped fixture identity before application execution and the thin Next Route Handler preserves the declared method, path, statuses, headers, body, and errors | Browser credentials, invalid identity, or cross-installation retrieval reaches application execution, or the Next bridge can change contract semantics; U2 selects and proves the production workload-identity provider |
+| Portability mechanism | The same representative artifact topology starts without a hosted callback, survives OCI export/import, initializes and restores isolated schemas and PVC data, rolls code forward and back, and uninstalls bounded resources | The selected worker or schema intrinsically requires a hosted callback or different build |
+| Retention and deletion mechanism | Tenant-scoped tombstone, intent, purge, receipt, retry, and restore non-resurrection are demonstrated for representative outbox and Workflow storage | Workflow storage cannot be cleared through a bounded compatibility adapter or deleted state reappears after restore |
+| Telemetry mechanism | Representative application canaries and a real OTel Collector transform prove bounded redaction before export | The selected application or Collector mechanism cannot redact a canary; U11A, enabled U11B modes, and U16 prove every product sink and failure surface end to end |
 
-Beta status is not a stop condition by itself. Any actual stop condition returns the complete selected stack to planning; no partial-adoption or alternative-stack comparison runs inside this gate.
+Beta status is not a stop condition by itself. Any actual feasibility stop condition returns the complete selected stack to planning; no partial-adoption or alternative-stack comparison runs inside this gate.
+
+Later product integration remains fail-closed in the unit that owns it:
+
+- U2 proves real workload identity, private/public ingress, every selected model-authentication kind on the exact pinned Codex version, provider OAuth and device-code state, PKCE, issuer, redirect, polling, eligibility, credential-store write-without-read authority, runtime projection reload, and external-component trust.
+- U3 proves controller consumption of the exact contract, digest agreement, conditions, and production RBAC.
+- U4 proves the production package, Flux feature gate, storage and artifact-server choices, and disconnected source topology.
+- U11A proves the required API-key SQL-backed deterministic projection, Connection and lane interactions, authorization and state models, manual credential non-retention, private-route ingress, and product telemetry. U11B extends those same contracts only for optional Business/Enterprise access-token and managed-ChatGPT modes that passed U2.
+- U12 proves the same signed product release in self-hosted, hosted, and disconnected acceptance environments.
+- U15 implements and proves the first product export and deletion Workflow.
+- U16 reruns the complete security, portability, scale, rollback, deletion, and telemetry contract against release artifacts.
 
 ## Required Validation Evidence
 
@@ -302,12 +366,14 @@ The disposable validation task must record:
 - The selected shared-table or per-installation tenant-isolation topology and its hostile direct-SQL and pooled-connection results.
 - Crash, retry, PostgreSQL interruption, restart, duplicate-effect, upgrade, migration-interruption, image-rollback, and post-adoption reversal results.
 - Whether transactional enrollment is real; otherwise the complete outbox proof.
-- Deterministic OpenAPI generation output and warnings.
-- Workload-authenticated generated-handler tests, including browser-credential and path-to-identity denial.
+- Deterministic HttpApi-to-OpenAPI output, extension checks, drift result, and warnings.
+- Cryptographically authenticated fixture-identity tests for HttpApi middleware and the thin Next Route Handler, including browser-credential and path-to-identity denial plus method, path, status, header, error, and response parity with generated OpenAPI; production workload identity remains U2.
 - Concurrency and context-isolation results.
-- Deployed browser-session, trusted-origin, CSRF, cookie, revocation, OAuth state, PKCE, and redirect tests.
-- Canary-redaction results for actions, SQL, workflows, callbacks, traces, logs, failures, and crashes.
-- Hosted, self-hosted, disconnected, backup, restore, deletion, receipt, and uninstall results for the web and workflow topology.
+- Compiled browser-session, trusted-origin/CSRF, secure-cookie, stored-authorization, stale-membership, and revocation tests; provider OAuth state, PKCE, and redirect handling remain U2.
+- Exact pinned stock-Codex schema and runtime receipts for API-key login, managed browser OAuth, device-code OAuth, the separate personal-access-token path, encrypted credential storage, logout, containment, and explicit rejection of internal or imported token forms.
+- Credential-writer policy and hostile-call evidence showing create/version/promote/revoke/status without value read/list/export, plus staged activation, optimistic concurrency, runtime reload, revocation-fence ordering, cleanup remediation, and rollback non-resurrection.
+- Representative application-canary and real OTel Collector redaction results; complete callback, SQL, workflow, failure, trace, and crash sink coverage remains U11A, enabled U11B modes, and U16.
+- Representative disconnected artifact import, backup, restore, deletion, receipt, rollback, and bounded uninstall results for the web and workflow topology; full operating-model acceptance remains U12.
 - Documented guarantees separately from behavior observed only in the spike.
 - Operational and upgrade risks, required deviations, and a final pass, blocked, or return-to-planning result for the selected stack.
 - Precise follow-up edits proposed for the canonical Symphony documents.
@@ -317,11 +383,11 @@ All scratch source, databases, generated files, logs, and evidence remain under 
 ## Implementation Entry Procedure
 
 1. Treat the full Effect platform in this document as the selected composition; do not build comparative Kysely or partial-adoption candidates.
-2. Complete the disposable validation report against that exact composition.
-3. Review every failed or inconclusive gate. A load-bearing failure blocks implementation and returns to planning.
-4. Record exact dependency pins, database topology, generated-contract tooling, Workflow topology, and migration compatibility.
+2. Preserve the completed base-composition receipt and add the focused KTD17 HttpApi-to-OpenAPI receipt; do not rerun unrelated stack comparisons.
+3. Review every failed or inconclusive feasibility gate. A load-bearing mechanism failure blocks implementation and returns to planning; product-integration residuals remain assigned to and blocking in their owning units.
+4. Record exact dependency pins, database topology, authoritative HttpApi and OpenAPI-generation tooling, Workflow topology, and migration compatibility.
 5. Update every affected implementation unit, file list, task, test, and completion condition before console scaffolding begins.
-6. Remove superseded direct Kysely product dependencies, `kysely-codegen`, `openapi-typescript`, and no-workflow assumptions atomically. Retain only Better Auth's pinned internal Kysely-backed adapter inside the authentication boundary.
+6. Remove superseded direct Kysely product dependencies, `kysely-codegen`, `openapi-typescript`, reverse OpenAPI-to-Effect generation, and no-workflow assumptions atomically. Retain only Better Auth's pinned internal Kysely-backed adapter inside the authentication boundary.
 
 ## Definition of Ready for Implementation
 
@@ -330,15 +396,17 @@ All scratch source, databases, generated files, logs, and evidence remain under 
 - Better Auth operates with no runtime DDL authority. Effect Workflow's runtime DDL is restricted to its isolated `workflow` schema and dedicated role.
 - Effect SQL expresses the representative product workload safely and directly; no parallel Kysely comparison is required.
 - Effect Workflow durability, retries, idempotency, schema ownership, and payload evolution pass.
-- Hosted deletion and per-data-class receipt collection are implemented as the first required Effect Workflow and cannot assume Symphony or Flux orchestration authority.
+- A representative tombstone, purge, and per-data-class receipt workflow proves the required Effect Workflow seams without assuming Symphony or Flux authority; U15 implements the product workflow.
 - Application acceptance cannot lose required durable workflow enrollment.
 - `after()` and `waitUntil()` are proven non-authoritative optimizations.
-- The private desired-state contract generates deterministically and without warnings while preserving the current wire contract.
-- Generated bindings preserve workload authentication and deny browser and cross-installation access before application execution.
+- The private desired-state Effect HttpApi executes the current wire contract and generates byte-stable OpenAPI 3.1 without warnings, including required projection and bound extensions.
+- The thin private Next Route Handler preserves HttpApi authentication, validation, path, method, status, header, error, and response semantics and denies browser and cross-installation access.
+- Connection metadata and credential material have separate schemas, ports, roles, stores, backup classifications, and tests; no console database table or ordinary application method can contain or retrieve a reusable credential.
+- Stock Codex remains the sole owner of managed ChatGPT exchange, storage, refresh, and logout, while the console exposes only an authenticated non-secret control and status ceremony.
 - Client Components have no Effect dependency.
 - The web and workflow processes use one image but remain independently operable, isolated, and scalable even when the alternate entrypoint is invoked.
-- Tenant isolation, browser-session integrity, telemetry redaction, workflow authorization, portability, rollback, reversal, deletion, and restore non-resurrection gates pass.
-- The full selected composition passes together; partial-adoption variants are not evaluated.
+- Representative tenant isolation, browser-session integrity, telemetry redaction, workflow authorization, portability, rollback, reversal, deletion, and restore non-resurrection mechanisms pass; later product acceptance remains unit-owned.
+- The complete selected composition is proven mutually compatible under the bounded topology; partial-adoption variants are not evaluated.
 
 ## References
 
@@ -347,7 +415,13 @@ All scratch source, databases, generated files, logs, and evidence remain under 
 - [Effect documentation](https://effect.website/docs/)
 - [Effect SQL](https://effect.website/docs/sql/introduction/)
 - [Effect Workflow](https://effect.website/docs/workflow/introduction/)
+- [Effect OpenApi source](https://github.com/Effect-TS/effect/blob/main/packages/effect/src/unstable/httpapi/OpenApi.ts)
 - [Next.js App Router](https://nextjs.org/docs/app)
 - [Better Auth](https://www.better-auth.com/docs)
+- [Codex authentication](https://developers.openai.com/codex/auth)
+- [Codex app-server authentication](https://learn.chatgpt.com/docs/app-server#auth-endpoints)
+- [Codex access tokens](https://learn.chatgpt.com/docs/enterprise/access-tokens)
+- [OAuth 2.0 Device Authorization Grant](https://www.rfc-editor.org/rfc/rfc8628)
+- [OAuth 2.0 Security Best Current Practice](https://www.rfc-editor.org/rfc/rfc9700)
 - [Atlas versioned migrations](https://atlasgo.io/concepts/declarative-vs-versioned)
 - [OpenAPI Specification 3.1](https://spec.openapis.org/oas/v3.1.0)

@@ -6,19 +6,24 @@
 > a `SymphonyLane` operator, or a duplicate Symphony control plane. Lane
 > self-service is console-driven and `ExternalArtifact`-backed: the console
 > accepts complete immutable desired-state revisions and exposes exactly one
-> authenticated, cluster-private desired-state `GET`. Its projection-ready lane
-> items describe child Flux Kustomizations. The product-release Kustomize base
-> statically creates one `DesiredStateSource`, one `ExternalArtifact`, one root
+> authenticated, cluster-private desired-state `GET`. Effect Schema and HttpApi
+> are the executable wire authority and generate the controller-facing OpenAPI
+> 3.1 document; OpenAPI is not an independently authored contract. Its
+> projection-ready lane items describe child Flux Kustomizations. The
+> product-release Kustomize base
+> statically creates one KRM Source `DesiredStateSource`, one `ExternalArtifact`, one root
 > Flux `Kustomization`, and one digest-pinned product-release `OCIRepository` per
-> installation or hosted cluster. A reusable generic OpenAPI-to-KRM controller
+> installation, including every installation on a hosted cluster. The signed,
+> digest-pinned `jasonmorganson/krm-source` release
 > reflects each accepted response into current and recent deterministic Flux
 > artifacts and updates only source and artifact status; it observes root and
 > child Kustomizations read-only. The root Kustomization owns the projected
 > children, each child consumes the fixed lane package from the static OCI
 > source and owns its lane inventory, and Flux remains the sole Kubernetes
 > writer, pruner, drift detector, inventory owner, and health reporter.
-> PostgreSQL retains immutable rollback revisions, so garbage-collected artifact
-> bytes are regenerated; artifact receipts are audit evidence only. The
+> PostgreSQL retains immutable rollback revisions together with their schema,
+> projection, and KRM canonicalization/archive versions, so garbage-collected
+> artifact bytes are regenerated under their recorded contract; artifact receipts are audit evidence only. The
 > controller cannot create, delete, or modify binding specifications or mutate
 > lane resources, and it does not claim `SourceVerified` without actual source
 > signature verification. Missing or altered bindings are restored from the
@@ -26,6 +31,23 @@
 > the immutable product-release and disconnected-transport format. A future
 > read-only OCI frontend is consumed directly through `OCIRepository`; it does
 > not emit `ExternalArtifact` YAML or chain through that adapter.
+> Pause keeps both Flux children active and scales orchestrator and worker
+> replicas to zero. Removal first omits workload and waits for observed inventory
+> termination before a separately audited revision omits bootstrap.
+> Literal R3 is preserved through a trusted lane boundary: Symphony and stock
+> Codex app-server keep Linear and model authentication in the orchestrator, an
+> uncredentialed persistent worker exposes only the pinned remote exec-server
+> environment, and a lane-scoped Git broker grants only leased source reads,
+> PR-origin work-ref writes, and pull-request read/create/update operations. The
+> issuer uses distinct source and PR-origin installation identities and tokens,
+> requires a fresh no-deploy attestation, and holds the App key outside the lane
+> broker. Coding sessions receive only issue-scoped Linear commands. Durable
+> epochs plus broker and stock-Codex supervisor acknowledgements fence live
+> authority, and worker dependencies use controlled installation-owned mirrors.
+> dedicated PR-origin fork has no Actions execution, secrets, environments,
+> deploy keys, or deployment path. This boundary remains fail-closed in U2; the product
+> does not fall back to worker secrets, a token-returning helper, or local Codex
+> execution.
 > This document remains only as historical product context where the plan does
 > not replace it.
 

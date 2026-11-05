@@ -14,7 +14,7 @@ scope: console, persistence, migrations, and wire contracts
 
 This document preserves the previously accepted Kysely and `openapi-typescript` implementation posture for decision history. It is superseded by `symphony-saas-console-effect-platform.md`, which now owns the selected console framework, persistence, workflow, Server Action, and private wire-contract implementation decisions. The main Product Contract and Key Technical Decisions continue to own customer-visible behavior and system boundaries.
 
-Do not implement from this document. Its Kysely, `kysely-codegen`, `openapi-typescript`, single-package, and no-selected-workflow decisions are historical context only. The authored OpenAPI contract, SQL-first Atlas boundary, explicit Server Actions, Better Auth boundary, Flux ownership, and Symphony ownership continue where the selected Effect supplement preserves them.
+Do not implement from this document. Its Kysely, `kysely-codegen`, `openapi-typescript`, authored-OpenAPI authority, single-package, and no-selected-workflow decisions are historical context only. The current [Effect supplement](symphony-saas-console-effect-platform.md) makes Effect HttpApi authoritative and generates OpenAPI for the controller. The SQL-first Atlas boundary, explicit Server Actions, Better Auth boundary, Flux ownership, and Symphony ownership continue only where that supplement and the canonical plan preserve them.
 
 This supplement cannot move any Symphony-owned polling, claims, retries, workspaces, tracker normalization, Codex sessions, or run state into the console. It cannot move Kubernetes write authority from Flux into the console or the reusable source controller.
 

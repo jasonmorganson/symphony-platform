@@ -1,14 +1,22 @@
 # Symphony Platform
 
-Symphony Platform packages the existing Symphony engine as one portable
-product for hosted and self-hosted operation. This repository is currently the
-implementation-planning authority; product code begins only after the selected
-Effect platform validation gate passes.
+> **Status: deferred reference design.** This repository preserves the reviewed
+> product, architecture, security, and implementation planning for a possible
+> future Symphony platform. No implementation is currently scheduled, and the
+> documents do not describe a deployed or supported service.
+
+Symphony Platform is a proposed portable product around the existing Symphony
+engine for hosted and self-hosted operation. This repository intentionally
+contains documentation only. Symphony source and runtime-image construction
+remain in their existing repositories.
 
 ## Documents
 
+- [Documentation index](docs/README.md) — status, reading order, and authority
+  of the complete planning corpus.
 - [Implementation plan](docs/symphony-platform-implementation-plan.md) — the
-  canonical product, architecture, sequencing, and acceptance contract.
+  canonical deferred product, architecture, sequencing, and acceptance
+  contract.
 - [Effect platform supplement](docs/symphony-saas-console-effect-platform.md) —
   the selected console application, persistence, workflow, and private-contract
   implementation posture.
@@ -28,3 +36,14 @@ Effect platform validation gate passes.
   health reporter for lane Kubernetes resources.
 - This repository owns the console, contracts, product packaging, hosted
   integrations, validation, and release configuration described by the plan.
+
+## Repository scope
+
+There is no application, controller, Kubernetes package, database migration,
+or release pipeline on `main`. Paths such as `apps/`, `packages/`, `deploy/`,
+and `tests/` in the implementation plan are proposed future paths, not existing
+software.
+
+If the project is resumed, begin by refreshing all external dependency and
+provider assumptions, rerunning the recorded conformance gates, and reviewing
+the implementation plan before creating production code.
